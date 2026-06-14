@@ -1,0 +1,99 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+ html,body{margin:0;width:100%;height:100%;background:transparent;}
+ #bwrap{position:absolute;inset:0;width:100%;height:100%;overflow:hidden;background:transparent;}
+ #stage{position:absolute;left:50%;top:50%;width:1080px;height:1080px;transform-origin:center;}
+ .sc{position:absolute;inset:0;}.sc svg{width:100%;height:100%;display:block;overflow:visible;}
+</style></head><body>
+<div id="bwrap"><div id="stage">
+ <div class="sc"><svg viewBox="0 0 1080 1080"><defs>
+   <!-- same texture as blob-v1 -->
+   <linearGradient id="gBlob" gradientUnits="userSpaceOnUse" x1="210" y1="300" x2="870" y2="780">
+    <stop offset="0" stop-color="#9CC2E0"/><stop offset=".4" stop-color="#F3D9A6"/><stop offset=".7" stop-color="#EE8FA0"/><stop offset="1" stop-color="#E95E6C"/></linearGradient>
+   <radialGradient id="gSphere" gradientUnits="userSpaceOnUse" cx="420" cy="430" r="620">
+    <stop offset="0" stop-color="#fff" stop-opacity=".5"/>
+    <stop offset=".38" stop-color="#fff" stop-opacity="0"/>
+    <stop offset=".76" stop-color="#000" stop-opacity="0"/>
+    <stop offset="1" stop-color="#000" stop-opacity=".5"/></radialGradient>
+   <radialGradient id="gSpec" gradientUnits="userSpaceOnUse" cx="400" cy="410" r="200">
+    <stop offset="0" stop-color="#fff" stop-opacity=".8"/>
+    <stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  </defs>
+   <g id="rectg">
+    <path id="rectpath" d="" fill="url(#gBlob)"/>
+    <path id="rectshade" d="" fill="url(#gSphere)"/>
+    <ellipse id="spec" cx="400" cy="410" rx="170" ry="120" fill="url(#gSpec)"/>
+   </g>
+ </svg></div>
+</div></div>
+<script>
+const $=s=>document.querySelector(s);
+const stage=$('#stage'),bwrap=document.getElementById('bwrap');
+function fit(){const w=bwrap.clientWidth,h=bwrap.clientHeight;if(w>0&&h>0){const s=Math.min(w,h)/1080;stage.style.transform=`translate(-50%,-50%) scale(${s})`;}}
+addEventListener('resize',fit);addEventListener('load',fit);
+if(window.ResizeObserver){new ResizeObserver(fit).observe(bwrap);}
+if(window.IntersectionObserver){new IntersectionObserver(()=>fit()).observe(bwrap);}
+[0,100,300,800,1500].forEach(d=>setTimeout(fit,d));fit();
+const rectp=$('#rectpath'),rects=$('#rectshade'),spec=$('#spec');
+const gBlob=$('#gBlob');
+// Rounded rectangle whose perimeter points wobble organically (blob-style).
+// Points are sampled around a rect (half-width HW, half-height HH, corner radius CR),
+// then each is pushed along its outward normal by a low-frequency noise -> living edge.
+function roundRectPts(cx,cy,HW,HH,CR,N){
+ // build base perimeter as param 0..1 around a rounded rect
+ const pts=[];
+ // straight + arc segment lengths
+ const sw=2*(HW-CR), sh=2*(HH-CR), arc=Math.PI*CR/2;
+ const per=2*sw/2*0+ (2*(HW-CR))*2*0; // placeholder
+ // We'll just sample by angle-ish using 4 sides + 4 corners proportionally.
+ const segs=[
+  {type:'line',len:sw,from:[cx-HW+CR,cy-HH],to:[cx+HW-CR,cy-HH]},      // top
+  {type:'arc',len:arc,c:[cx+HW-CR,cy-HH+CR],a0:-Math.PI/2,a1:0},        // TR
+  {type:'line',len:sh,from:[cx+HW,cy-HH+CR],to:[cx+HW,cy+HH-CR]},       // right
+  {type:'arc',len:arc,c:[cx+HW-CR,cy+HH-CR],a0:0,a1:Math.PI/2},         // BR
+  {type:'line',len:sw,from:[cx+HW-CR,cy+HH],to:[cx-HW+CR,cy+HH]},       // bottom
+  {type:'arc',len:arc,c:[cx-HW+CR,cy+HH-CR],a0:Math.PI/2,a1:Math.PI},   // BL
+  {type:'line',len:sh,from:[cx-HW,cy+HH-CR],to:[cx-HW,cy-HH+CR]},       // left
+  {type:'arc',len:arc,c:[cx-HW+CR,cy-HH+CR],a0:Math.PI,a1:Math.PI*1.5}, // TL
+ ];
+ const total=segs.reduce((s,x)=>s+x.len,0);
+ for(let i=0;i<N;i++){
+  let dist=i/N*total, s=0;
+  for(const seg of segs){
+   if(dist<=s+seg.len){const u=(dist-s)/seg.len;
+    if(seg.type==='line'){pts.push([seg.from[0]+(seg.to[0]-seg.from[0])*u, seg.from[1]+(seg.to[1]-seg.from[1])*u]);}
+    else{const a=seg.a0+(seg.a1-seg.a0)*u;pts.push([seg.c[0]+Math.cos(a)*CR, seg.c[1]+Math.sin(a)*CR]);}
+    break;}
+   s+=seg.len;}
+ }
+ return pts;
+}
+function rect(cx,cy,HW,HH,CR,t){
+ const N=48;
+ const base=roundRectPts(cx,cy,HW,HH,CR,N);
+ const P=[];
+ for(let i=0;i<N;i++){
+  const [x,y]=base[i];
+  // outward normal from center (approx, fine for gentle wobble)
+  let nx=x-cx, ny=y-cy; const L=Math.hypot(nx,ny)||1; nx/=L; ny/=L;
+  const a=i/N*6.28319;
+  const w=22*Math.sin(a*3+t*1.5)+14*Math.sin(a*5-t*2.0)+9*Math.sin(a*2+t*1.0);
+  P.push([x+nx*w, y+ny*w]);
+ }
+ let d=`M${P[0][0].toFixed(1)},${P[0][1].toFixed(1)}`;
+ for(let i=0;i<N;i++){const p0=P[(i-1+N)%N],p1=P[i],p2=P[(i+1)%N],p3=P[(i+2)%N];
+  const c1x=p1[0]+(p2[0]-p0[0])/6,c1y=p1[1]+(p2[1]-p0[1])/6,c2x=p2[0]-(p3[0]-p1[0])/6,c2y=p2[1]-(p3[1]-p1[1])/6;
+  d+=`C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;}
+ return d+'Z';
+}
+function frame(now){
+ const ts=now/1000;
+ const d=rect(540,540,360,250,90,ts); // gentle wide rectangle, rounded corners
+ rectp.setAttribute('d',d);
+ rects.setAttribute('d',d);
+ gBlob.setAttribute('gradientTransform',`rotate(${(Math.sin(ts*0.4)*22).toFixed(1)} 540 540)`);
+ const lx=Math.sin(ts*0.4)*30,ly=Math.cos(ts*0.33)*22;
+ spec.setAttribute('cx',(400+lx).toFixed(1));spec.setAttribute('cy',(410+ly).toFixed(1));
+ requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script></body></html>
