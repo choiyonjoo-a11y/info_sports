@@ -1,0 +1,175 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>trace — homepage supergraphic</title>
+<style>
+  :root{
+    /* one palette block: change these three and the whole piece follows */
+    --ink:   #121212;
+    --coral: #FD6663;
+    --blue:  #C9C4B8;
+    /* gradient ends, a step either side of each base colour */
+    /* ink runs dark at the top-left, light at the bottom-right */
+    --ink-lo:   #050505;  --ink-hi:   #2B2B29;
+    --coral-lo: #FF9E92;  --coral-hi: #C93C46;
+    /* cream runs dark at the top-left, light at the bottom-right */
+    --blue-lo:  #A49E90;  --blue-hi:  #E4DFD3;
+    /* overall size of the graphic. 1.3 = 30% larger than the base drawing. */
+    --base: 1.3;
+    /* drop toward .22 to sit the graphic behind large type */
+    --strength: 1;
+  }
+
+  /* On a phone the limiting dimension is the width, so the same --base
+     reads heavier. One step down keeps the ring weights comparable. */
+  @media (max-width: 700px){
+    :root{ --base: 1.05; }
+  }
+  html,body{margin:0;padding:0;height:100%;background:transparent;}
+
+  /* The frame takes whatever the embed block gives it, at any shape.
+     No fixed size and no aspect ratio: the SVG below does the fitting. */
+  #frame{
+    position:relative;
+    width:100%;
+    height:100%;
+    min-height:100vh;
+    overflow:hidden;
+    background:transparent;
+  }
+  #frame > svg{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  #field{opacity:var(--strength);}
+
+  /* The graphic sits in the upper screen at rest and travels down through
+     the tall board over the cycle. Translate is written before scale so the
+     offset stays in board units at any magnification, and every step is
+     multiplied by --base, so one number resizes the whole piece. */
+  #camera{
+    transform-box:view-box;
+    transform-origin:724.0px 491.0px;
+    animation:camera 189.5s cubic-bezier(.37,0,.63,1) -64.37s infinite;
+    will-change:transform;
+  }
+  @keyframes camera{
+    0%   {transform:translate(140px,-58px)  scale(calc(1.42 * var(--base)));}
+    20%  {transform:translate(-90px,148px)  scale(calc(1.22 * var(--base)));}
+    40%  {transform:translate(214px,-118px) scale(calc(2.05 * var(--base)));}
+    58%  {transform:translate(-250px,188px) scale(calc(3.30 * var(--base)));}
+    78%  {transform:translate(146px,-94px)  scale(calc(5.90 * var(--base)));}
+    100% {transform:translate(140px,-58px)  scale(calc(1.42 * var(--base)));}
+  }
+
+  /* A second, much longer drift on top of the zoom. None of the four
+     periods divides into another, so the piece never retraces its path. */
+  #drift{
+    transform-box:view-box;
+    transform-origin:724.0px 491.0px;
+    animation:drift 307.3s cubic-bezier(.42,0,.58,1) -64.37s infinite;
+  }
+  @keyframes drift{
+    0%,100% {transform:translate(0,0);}
+    27%     {transform:translate(74px,-46px);}
+    58%     {transform:translate(-58px,68px);}
+    81%     {transform:translate(36px,30px);}
+  }
+
+  #turn{
+    transform-box:view-box;
+    transform-origin:724.0px 491.0px;
+    animation:spin 736.3s linear -64.37s infinite;
+  }
+  @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+  /* The dash pattern is fixed; only the offset moves. The gap is longer than
+     the path and the hidden offset parks the dash clear of the start point,
+     so there is never a zero-length dash or a cap sitting on the seam. That
+     degenerate state was the flicker at the top of each loop. */
+  .band{
+    stroke-linecap:butt;
+    stroke-dasharray:var(--full) var(--rest);
+    stroke-dashoffset:var(--hide);
+  }
+    .b0{animation:sweep0 64.37s linear infinite;}
+    @keyframes sweep0{
+      0%                {stroke-dashoffset:var(--hide);}
+      7.45%      {stroke-dashoffset:var(--hide);
+                         animation-timing-function:cubic-bezier(.28,0,.35,1);}
+      45.63%      {stroke-dashoffset:0;}
+      47.65%      {stroke-dashoffset:0;
+                         animation-timing-function:cubic-bezier(.65,0,.35,1);}
+      80.36%,100% {stroke-dashoffset:var(--hide);}
+    }
+    .b1{animation:sweep1 64.37s linear infinite;}
+    @keyframes sweep1{
+      0%                {stroke-dashoffset:var(--hide);}
+      4.98%      {stroke-dashoffset:var(--hide);
+                         animation-timing-function:cubic-bezier(.28,0,.35,1);}
+      43.14%      {stroke-dashoffset:0;}
+      54.19%      {stroke-dashoffset:0;
+                         animation-timing-function:cubic-bezier(.65,0,.35,1);}
+      86.91%,100% {stroke-dashoffset:var(--hide);}
+    }
+    .b2{animation:sweep2 64.37s linear infinite;}
+    @keyframes sweep2{
+      0%                {stroke-dashoffset:var(--hide);}
+      2.49%      {stroke-dashoffset:var(--hide);
+                         animation-timing-function:cubic-bezier(.28,0,.35,1);}
+      40.66%      {stroke-dashoffset:0;}
+      60.73%      {stroke-dashoffset:0;
+                         animation-timing-function:cubic-bezier(.65,0,.35,1);}
+      93.45%,100% {stroke-dashoffset:var(--hide);}
+    }
+    .b3{animation:sweep3 64.37s linear infinite;}
+    @keyframes sweep3{
+      0%                {stroke-dashoffset:var(--hide);}
+      0.00%      {stroke-dashoffset:var(--hide);
+                         animation-timing-function:cubic-bezier(.28,0,.35,1);}
+      38.17%      {stroke-dashoffset:0;}
+      67.28%      {stroke-dashoffset:0;
+                         animation-timing-function:cubic-bezier(.65,0,.35,1);}
+      100%          {stroke-dashoffset:var(--hide);}
+    }
+
+  @media (prefers-reduced-motion: reduce){
+    #camera,#drift,#turn,.band{animation:none;}
+    #camera{transform:translate(-90px,148px) scale(calc(1.22 * var(--base)));}
+    .band{stroke-dashoffset:0;}
+  }
+</style></head>
+<body>
+<div id="frame">
+  <svg viewBox="0 0 1448 982" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <!-- One gradient per colour. Each is measured against its own shape,
+           so every ring carries the same soft turn of light. Swap a stroke
+           back to var(--coral) etc. for a flat fill. -->
+      <linearGradient id="gcoral" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0"   stop-color="var(--coral-lo)"/>
+        <stop offset=".52" stop-color="var(--coral)"/>
+        <stop offset="1"   stop-color="var(--coral-hi)"/>
+      </linearGradient>
+      <linearGradient id="gink" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0"   stop-color="var(--ink-lo)"/>
+        <stop offset=".52" stop-color="var(--ink)"/>
+        <stop offset="1"   stop-color="var(--ink-hi)"/>
+      </linearGradient>
+      <linearGradient id="gblue" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0"   stop-color="var(--blue-lo)"/>
+        <stop offset=".52" stop-color="var(--blue)"/>
+        <stop offset="1"   stop-color="var(--blue-hi)"/>
+      </linearGradient>
+    </defs>
+    <g id="camera">
+      <g id="drift">
+        <g id="turn">
+        <g id="field">
+          <g class="fade f0"><path class="band b0" d="M724.00,61.38 A429.62,429.62 0 1 1 724.00,920.62 A429.62,429.62 0 1 1 724.00,61.38 Z" fill="none" stroke="url(#gcoral)" stroke-width="122.75" stroke-linejoin="round" style="--full:2711.4px;--rest:3263.3px;--hide:2721.4px"/></g>
+          <g class="fade f1"><path class="band b1" d="M724.00,184.12 A306.88,306.88 0 1 1 724.00,797.88 A306.88,306.88 0 1 1 724.00,184.12 Z" fill="none" stroke="url(#gink)" stroke-width="122.75" stroke-linejoin="round" style="--full:1940.2px;--rest:2337.8px;--hide:1950.2px"/></g>
+          <g class="fade f2"><path class="band b2" d="M724.00,282.30 A208.70,208.70 0 1 1 724.00,699.70 A208.70,208.70 0 1 1 724.00,282.30 Z" fill="none" stroke="url(#gblue)" stroke-width="73.60" stroke-linejoin="round" style="--full:1323.3px;--rest:1597.6px;--hide:1333.3px"/></g>
+          <g class="fade f3"><path class="band b3" d="M724.00,405.05 A85.95,85.95 0 1 1 724.00,576.95 A85.95,85.95 0 1 1 724.00,405.05 Z" fill="none" stroke="url(#gink)" stroke-width="171.90" stroke-linejoin="round" style="--full:552.0px;--rest:672.0px;--hide:562.0px"/></g>
+        </g>
+        </g>
+      </g>
+    </g>
+  </svg>
+</div>
+</body></html>
